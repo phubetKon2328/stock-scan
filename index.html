@@ -184,15 +184,21 @@
     <div id="footer">จ่อบาร์โค้ดในกรอบสีเขียว</div>
 
     <script>
-      const LIFF_ID = "YOUR_LIFF_ID"; // ← ใส่ LIFF ID ของคุณ
+      const LIFF_ID = "2009823905-mkKfG4F4";
       const ACTION =
         new URLSearchParams(location.search).get("action") || "ออก";
 
       let scanning = true;
 
       async function init() {
-        await liff.init({ liffId: LIFF_ID });
-        startCamera();
+        try {
+          await liff.init({ liffId: LIFF_ID });
+          document.getElementById("status").textContent = "กำลังเปิดกล้อง...";
+          startCamera();
+        } catch (err) {
+          document.getElementById("status").textContent =
+            "❌ เกิดข้อผิดพลาด: " + err.message;
+        }
       }
 
       async function startCamera() {
@@ -201,7 +207,7 @@
             video: { facingMode: "environment" },
           });
           document.getElementById("video").srcObject = stream;
-          document.getElementById("status").textContent = "พร้อมสแกนแล้ว";
+          document.getElementById("status").textContent = "พร้อมสแกนแล้ว ✅";
           startDecoder();
         } catch (err) {
           document.getElementById("status").textContent =
@@ -223,6 +229,8 @@
           if (result && scanning) {
             scanning = false;
             const barcode = result.getText();
+            document.getElementById("status").textContent =
+              "✅ สแกนได้: " + barcode;
             sendBarcode(barcode);
           }
         });
@@ -235,22 +243,19 @@
       }
 
       function sendBarcode(barcode) {
-        document.getElementById("status").textContent =
-          `✅ สแกนได้: ${barcode}`;
-        // ส่งข้อความกลับไปที่ Line แชท
         liff
           .sendMessages([
             {
               type: "text",
-              text: `${ACTION} ${barcode}`,
+              text: ACTION + " " + barcode,
             },
           ])
           .then(() => {
             liff.closeWindow();
           })
-          .catch(() => {
-            // fallback ถ้า sendMessages ไม่ได้
-            liff.closeWindow();
+          .catch((err) => {
+            document.getElementById("status").textContent =
+              "❌ ส่งไม่ได้: " + err.message;
           });
       }
 
